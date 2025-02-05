@@ -10,8 +10,8 @@ producer = KafkaProducer(
 )
 
 # Configuração da API da Twitch
-CLIENT_ID = 'seu-client-id'
-ACCESS_TOKEN = 'seu-access-token'
+CLIENT_ID = ''
+ACCESS_TOKEN = ''
 HEADERS = {
     'Client-ID': CLIENT_ID,
     'Authorization': f'Bearer {ACCESS_TOKEN}'

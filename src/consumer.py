@@ -38,7 +38,7 @@ df = df.selectExpr("CAST(value AS STRING)") \
     .select(from_json(col("value"), schema).alias("data")) \
     .select("data.*")
 
-df.printSchema()
+# df.printSchema()
 
 # Escrever para o console (para debug)
 query = df.writeStream \
