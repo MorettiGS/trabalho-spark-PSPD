@@ -1,0 +1,16 @@
+{
+  "name": "twitch-sink",
+  "config": {
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "tasks.max": "1",
+    "topics": "twitch-output",
+    "connection.url": "http://localhost:9200",
+    "type.name": "_doc",
+    "key.ignore": "true",
+    "schema.ignore": "true",
+    "behavior.on.malformed.documents": "ignore",
+    "transforms": "extractNested",
+    "transforms.extractNested.type": "org.apache.kafka.connect.transforms.ExtractField$Value",
+    "transforms.extractNested.field": "value"
+  }
+}
