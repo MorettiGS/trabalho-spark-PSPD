@@ -1,0 +1,161 @@
+Instalações:
+
+- Instalar Java como antes (versão 11).
+
+- Instalar Spark:
+
+wget https://dlcdn.apache.org/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz
+tar xf spark-3.5.4-bin-hadoop3.tgz
+
+- Instalar Kafka:
+
+curl -sSOL https://dlcdn.apache.org/kafka/3.9.0/kafka_2.13-3.9.0.tgz
+tar xvfz kafka_2.13.3.9.0.tgz
+
+pip install -q findspark kafka-python
+
+- Instalacao e execução do ElasticSearch e do Kibana via Docker:
+
+docker network create elastic
+
+docker run --name elasticsearch --net elastic -p 9200:9200 -p 9300:9300 \
+    -e "discovery.type=single-node" -e "xpack.security.enabled=false" \
+    -d docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+
+docker run --name kibana --net elastic -p 5601:5601 \
+    -e "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
+    -d docker.elastic.co/kibana/kibana:8.12.0
+
+------
+
+Links:
+
+Nosso google colab: https://colab.research.google.com/drive/1e_9E7ii2ltSK2rtRdIgdbaZMfBaZy9sZ?usp=sharing
+
+Nosso repo: https://github.com/MorettiGS/trabalho-spark-PSPD
+
+Links da API da twitch:
+
+https://dev.twitch.tv/docs/api/reference/
+
+https://dev.twitch.tv/docs/api/get-started/
+
+------
+
+Considerar todas as ações a seguir dentro da home do kafka:
+
+- Iniciar kafka (sem daemon):
+
+./bin/zookeeper-server-start.sh config/zookeeper.properties
+
+./bin/kafka-server-start.sh config/server.properties
+
+para parar apenas fechando o terminal que roda cada um.
+
+- Iniciar kafka (com daemon, ou seja, em segundo plano):
+
+./bin/zookeeper-server-start.sh -daemon ./config/zookeeper.properties
+./bin/kafka-server-start.sh -daemon ./config/server.properties
+
+para parar:
+
+./bin/kafka-server-stop.sh
+./bin/zookeeper-server-stop.sh
+
+- Criar topicos de entrada e saida no kafka (twitch-input e twitch-output):
+
+./bin/kafka-topics.sh --create --topic twitch-input --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+./bin/kafka-topics.sh --create --topic twitch-output --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+
+- Verificar existencia dos topicos:
+
+./bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+-----------------
+
+ElasticSearch/Kibana (nada disso ainda foi testado)
+
+Considerar as ações a seguir para o Kibana/ElasticSearch:
+
+- Criar o conector pro ElasticSearch (tendo o arquivo twitch-es.json):
+
+curl -X POST -H "Content-Type: application/json" --data @twitch-es.json http://localhost:8083/connectors
+
+ou, na raiz do kafka,
+
+./bin/connect-standalone.sh config/connect-standalone.properties twitch-es.json
+
+- Verificar a adição do conector:
+
+curl -X GET http://localhost:8083/connectors
+
+Após isso, apenas configurar o Kibana para apresentar os gráficos corretamente:
+
+Acesse o Kibana (http://localhost:5601):
+
+Vá para "Management" > "Stack Management" > "Index Patterns".
+Clique em "Create index pattern".
+Digite twitch-output* como o nome do padrão.
+Escolha um campo de data (por exemplo, started_at).
+Finalize e salve.
+
+Agora você pode criar gráficos no Kibana:
+
+Acesse "Dashboard" no Kibana.
+Clique em "Create Visualization".
+Escolha um tipo de gráfico (barras, linha, tabela, etc.).
+Selecione o Index Pattern twitch-output.
+Configure os eixos e métricas conforme necessário (ex: viewer_count por game_name).
+Salve e adicione ao Dashboard.
+
+-----------------
+
+PRODUTOR
+
+INPUT da Twitch:
+
+- Logar na twitch como dev: dev.twitch.tv
+
+- Criar um novo aplicativo no botão Registrar Aplicativo.
+
+- Inserir:
+
+	- Um nome único;
+	- O URL do localhost (http://localhost:7078, por exemplo);
+	- Categoria Analytics Tool; e
+	- Confidencial.
+	
+- Após criado, o ID de Cliente, client_id, irá aparecer, que será usado para pegar o access token.
+
+- Crie um Segredo de Cliente e guarde.
+
+- Execute o comando terminal:
+
+curl -X POST "https://id.twitch.tv/oauth2/token" \
+-d "client_id=<<seu id de cliente>>" \
+-d "client_secret=<<seu segredo de cliente>>" \
+-d "grant_type=client_credentials"
+
+- Guarde o access token que virá como resultado. Ele expira depois de um tempo.
+
+- Execute o arquivo producer.py e o kafka iniciará o acesso à API e continuará pegando dados do endpoint ou endpoints selecionados.
+
+-----------------
+
+CONSUMIDOR
+
+Com o código já criado, execute-o com as configurações corretas do SparkStreaming para permitir que o SparkStreaming faça a conexão com o processador. Certifique-se que tudo está rodando corretamente.
+
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.9.0 consumer.py
+
+- verificar se o spark streaming está rodando:
+
+jps | grep Spark
+
+-----------------
+
+PROCESSADOR
+
+O código streaming.py deve utilizar sua chave da API do OpenAI ou IA de preferência para criar as requisições, pegando dessa forma os dados que foram consumidos do tópico Kafka e processados pelo SparkStreaming. Esses dados vão ser resgatados do SparkStreaming para serem enviados ao processamento da IA. O resultado passa pelo SparkStreaming novamente para ser enviado via tópico de saída para o ElasticSearch, que deve estar rodando e pegando os dados do tópico solicitado via Kafka Connect.
+
