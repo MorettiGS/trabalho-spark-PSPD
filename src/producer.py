@@ -22,9 +22,18 @@ while True:
     response = requests.get(URL, headers=HEADERS)
     if response.status_code == 200:
         data = response.json().get('data', [])
-        for stream in data:
-            producer.send('twitch-input', stream)  # Envia os dados para o Kafka
-        print(f"Enviados {len(data)} streams para o Kafka")
-        print(f"Streams enviadas: {data}")
-    time.sleep(10)  # Coleta dados a cada 10 segundos
-
+        # Criação do novo conjunto de dados com os campos necessários
+        reduced_data = [
+            {
+                'user_name': stream.get('user_name'),
+                'game_name': stream.get('game_name'),
+                'viewer_count': stream.get('viewer_count'),
+                'started_at': stream.get('started_at')
+            }
+            for stream in data
+        ]
+        print(reduced_data)
+        # Envia todo o novo conjunto de dados para o Kafka
+        producer.send('twitch-input', reduced_data)
+        print(f"Enviados {len(reduced_data)} streams para o Kafka")
+    time.sleep(15)  # Coleta dados a cada 15 segundos
