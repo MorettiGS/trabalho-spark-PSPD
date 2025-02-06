@@ -7,6 +7,12 @@ Instalações:
 wget https://dlcdn.apache.org/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz
 tar xf spark-3.5.4-bin-hadoop3.tgz
 
+pip install pyspark
+
+- Instalar Google API:
+
+pip install -q -U google-genai
+
 - Instalar Kafka:
 
 curl -sSOL https://dlcdn.apache.org/kafka/3.9.0/kafka_2.13-3.9.0.tgz
@@ -14,23 +20,9 @@ tar xvfz kafka_2.13.3.9.0.tgz
 
 pip install -q findspark kafka-python
 
-- Instalacao e execução do ElasticSearch e do Kibana via Docker:
-
-docker network create elastic
-
-docker run --name elasticsearch --net elastic -p 9200:9200 -p 9300:9300 \
-    -e "discovery.type=single-node" -e "xpack.security.enabled=false" \
-    -d docker.elastic.co/elasticsearch/elasticsearch:8.12.0
-
-docker run --name kibana --net elastic -p 5601:5601 \
-    -e "ELASTICSEARCH_HOSTS=http://elasticsearch:9200" \
-    -d docker.elastic.co/kibana/kibana:8.12.0
-
 ------
 
 Links:
-
-Nosso google colab: https://colab.research.google.com/drive/1e_9E7ii2ltSK2rtRdIgdbaZMfBaZy9sZ?usp=sharing
 
 Nosso repo: https://github.com/MorettiGS/trabalho-spark-PSPD
 
@@ -39,6 +31,12 @@ Links da API da twitch:
 https://dev.twitch.tv/docs/api/reference/
 
 https://dev.twitch.tv/docs/api/get-started/
+
+------
+
+API Gemini:
+
+- Crie sua chave de API do Gemini pelo site do Google AI For Developers para ser utilizada.
 
 ------
 
@@ -68,46 +66,9 @@ para parar:
 
 ./bin/kafka-topics.sh --create --topic twitch-output --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 
-- Verificar existencia dos topicos:
+- Verificar existencia dos tópicos:
 
 ./bin/kafka-topics.sh --list --bootstrap-server localhost:9092
-
------------------
-
-ElasticSearch/Kibana (nada disso ainda foi testado)
-
-Considerar as ações a seguir para o Kibana/ElasticSearch:
-
-- Criar o conector pro ElasticSearch (tendo o arquivo twitch-es.json):
-
-curl -X POST -H "Content-Type: application/json" --data @twitch-es.json http://localhost:8083/connectors
-
-ou, na raiz do kafka,
-
-./bin/connect-standalone.sh config/connect-standalone.properties twitch-es.json
-
-- Verificar a adição do conector:
-
-curl -X GET http://localhost:8083/connectors
-
-Após isso, apenas configurar o Kibana para apresentar os gráficos corretamente:
-
-Acesse o Kibana (http://localhost:5601):
-
-Vá para "Management" > "Stack Management" > "Index Patterns".
-Clique em "Create index pattern".
-Digite twitch-output* como o nome do padrão.
-Escolha um campo de data (por exemplo, started_at).
-Finalize e salve.
-
-Agora você pode criar gráficos no Kibana:
-
-Acesse "Dashboard" no Kibana.
-Clique em "Create Visualization".
-Escolha um tipo de gráfico (barras, linha, tabela, etc.).
-Selecione o Index Pattern twitch-output.
-Configure os eixos e métricas conforme necessário (ex: viewer_count por game_name).
-Salve e adicione ao Dashboard.
 
 -----------------
 
@@ -157,5 +118,11 @@ jps | grep Spark
 
 PROCESSADOR
 
-O código streaming.py deve utilizar sua chave da API do OpenAI ou IA de preferência para criar as requisições, pegando dessa forma os dados que foram consumidos do tópico Kafka e processados pelo SparkStreaming. Esses dados vão ser resgatados do SparkStreaming para serem enviados ao processamento da IA. O resultado passa pelo SparkStreaming novamente para ser enviado via tópico de saída para o ElasticSearch, que deve estar rodando e pegando os dados do tópico solicitado via Kafka Connect.
+O código streaming.py deve utilizar sua chave da API do Gemini para criar as requisições, pegando dessa forma os dados que foram consumidos do tópico Kafka e processados pelo SparkStreaming. Esses dados vão ser resgatados do SparkStreaming para serem enviados ao processamento da IA. O resultado passa pelo SparkStreaming novamente para ser enviado para o tópico de saída do Kafka - twitch-output.
+
+-----------------
+
+PLOT
+
+O código plot.py é o arquivo responsável por demonstrar a visualização dos dados enviados ao canal Kafka "twitch-output", que contém os dados processados pela IA do Gemini.
 
